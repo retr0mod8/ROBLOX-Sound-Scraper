@@ -12,6 +12,7 @@ namespace RobloxSoundScraper
         static string path;
         static string fileName;
         static string fileDirectory;
+        static bool metaFileNames = true;
         static void Main(string[] args)
         {
             WebClient client = new WebClient();
@@ -22,17 +23,48 @@ namespace RobloxSoundScraper
                 Console.Clear();
                 if (!File.Exists(@path))
                 {
-                    if(path[0] == '"')
+                    try
                     {
-                        path = path.Substring(1, path.Length - 2);
-                        if (File.Exists(@path))
-                            break;
+                        if (path[0] == '"')
+                        {
+
+                            path = path.Substring(1, path.Length - 2);
+
+                            if (File.Exists(@path))
+                                break;
+                        }
+                        Console.WriteLine("INVALID FILE PATH!");
                     }
-                    Console.WriteLine("INVALID FILE PATH!");
+                    catch
+                    {
+                        Console.WriteLine("INVALID FILE PATH!");
+                    }
                 }
                 else
                     break;
             }
+            Console.Clear();
+            while (true)
+            {
+                Console.WriteLine("Would you like meta file names? Type either 'y' or 'n'");
+                string awnser = Console.ReadLine().ToLower();
+                try
+                {
+                    if (awnser[0] == 'y')
+                        metaFileNames = true;
+                    else if (awnser[0] == 'n')
+                        metaFileNames = false;
+                    else
+                        throw new Exception();
+                    break;
+                }
+                catch (Exception)
+                {
+                    Console.Clear();
+                    Console.WriteLine("Incorrect input! Try Again!!!");
+                }
+            }
+            Console.Clear();
             fileName = Path.GetFileName(@path);
             //fileName = fileName.Substring(0, fileName.Length - 6);
             fileDirectory = @Path.GetDirectoryName(@path);
@@ -123,7 +155,7 @@ namespace RobloxSoundScraper
                 Console.SetCursorPosition(Pos.Item1, Pos.Item2);
                 try
                 {
-                    string filename = fileDirectory + "\\" + fileName + "_SOUNDS" + "\\" + @downloadAssetInfo(client,IDBank[i]);
+                    string filename = fileDirectory + "\\" + fileName + "_SOUNDS" + "\\" + @downloadAssetInfo(client, IDBank[i], metaFileNames);
                     if (File.Exists(@filename + ".ogg") || File.Exists(@filename + ".wav") || File.Exists(@filename + ".mp3"))
                         continue;
                     client.DownloadFile(@"https://api.hyra.io/audio/" + IDBank[i], @filename + ".DOWNLOADING");
@@ -158,16 +190,15 @@ namespace RobloxSoundScraper
                 }
                 catch (Exception)
                 {
-
                 }
             }
-            Console.WriteLine("Finished downloading!\nCheck Folder:" + fileDirectory + "\\" + fileName + "_SOUNDS");
+            Console.WriteLine("\nFinished downloading!\nCheck Folder:" + fileDirectory + "\\" + fileName + "_SOUNDS");
             Console.ReadLine();
         }
 
 
 
-        static string downloadAssetInfo(WebClient wc, string ID)
+        static string downloadAssetInfo(WebClient wc, string ID, bool MetaMode)
         {
             string package = "";
             List<String> stringList = new List<String>();
@@ -212,24 +243,31 @@ namespace RobloxSoundScraper
                         {
                             package = stringList[i].Substring(24, stringList[i].Length - 30);
                         }
-                        if (stringList[i].Substring(0, 10) == "by<ahref=\"")
+                        if (MetaMode)
                         {
-                            string local = stringList[i].Substring(10, stringList[i].Length - 15);
-                            for (int x = 0; x < local.Length; x++)
+                            if (stringList[i].Substring(0, 10) == "by<ahref=\"")
                             {
-                                if (local[x] == '\"')
+                                string local = stringList[i].Substring(10, stringList[i].Length - 15);
+                                for (int x = 0; x < local.Length; x++)
                                 {
-                                    package += "_" + local.Substring(x + 2, local.Length - x - 2);
+                                    if (local[x] == '\"')
+                                    {
+                                        package += "_" + local.Substring(x + 2, local.Length - x - 2);
+                                    }
                                 }
                             }
                         }
+                        
                     }
                     catch (Exception)
                     {
 
                     }
                 }
-                return ID + "_" + package;
+                if (MetaMode)
+                    return ID + "_" + package;
+                else
+                    return package;
             }
             catch (WebException)
             {
